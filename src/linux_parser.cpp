@@ -44,7 +44,8 @@ string LinuxParser::Kernel() {
     std::istringstream linestream(line);
     linestream >> os >> version >> kernel;
   }
-  return kernel;
+  stream.close();
+  return kernel.substr();
 }
 
 vector<int> LinuxParser::Pids() {
@@ -87,6 +88,7 @@ float LinuxParser::MemoryUtilization() {
       }
     
   }
+  filestream.close();
 
    return (memTotal-memFree-buffers-cached)/memTotal; 
   }
@@ -102,6 +104,7 @@ long LinuxParser::UpTime() {
     linestream >> seconds  ;
     return seconds; 
   }
+  stream.close();
   return seconds; 
   }
 
@@ -111,19 +114,34 @@ long LinuxParser::Jiffies() { return LinuxParser::ActiveJiffies() + LinuxParser:
 long LinuxParser::ActiveJiffies(int pid) { 
   string line;
   string jiffy;
-  long totalJiffy;
-  long activeJiffy;
+  long totalJiffy{0}, uTime{0},kTime{0},cTime{0},cK{0};
   vector<string> jiffies;
+  
   std::ifstream stream(kProcDirectory+to_string(pid)+kStatFilename);
   if (stream.is_open()){
     std::getline(stream , line);
     std::istringstream linestream(line);
     while(linestream>>jiffy) {
-      jiffies.push_back(jiffy);
+      jiffies.emplace_back(jiffy);
 
     }
   }
-    totalJiffy = stol(jiffies[13]) + stol(jiffies[14] )+ stol(jiffies[15]) + stol(jiffies[16]);
+  stream.close();
+  if (jiffies.size()>21) {
+  if (std::all_of(jiffies[13].begin(), jiffies[13].end(), isdigit)) {
+      if(jiffies[13].size()!=0) uTime = stol(jiffies[13]);
+  }
+  if (std::all_of(jiffies[14].begin(), jiffies[14].end(), isdigit)) {
+      if(jiffies[14].size()!=0) kTime = stol(jiffies[14]);
+  }
+  if (std::all_of(jiffies[15].begin(), jiffies[15].end(), isdigit)) {
+      if(jiffies[15].size()!=0) cTime = stol(jiffies[15]);
+  }
+  if (std::all_of(jiffies[16].begin(), jiffies[16].end(), isdigit)) {
+      if(jiffies[16].size()!=0) cK = stol(jiffies[16]);
+  }
+  }
+  totalJiffy = uTime + kTime + cTime + cK;
 
   return totalJiffy/ sysconf(_SC_CLK_TCK);}
 
@@ -157,13 +175,15 @@ vector<string> LinuxParser::CpuUtilization() {
     linestream>>key;
     
     while (linestream >> value) {
-      cpuStats.push_back(value);
+      cpuStats.emplace_back(value);
       
       }
-      return cpuStats;
+      
     }
   }
+  filestream.close();
     
+      return cpuStats;
     
    }
 
@@ -183,6 +203,7 @@ int LinuxParser::TotalProcesses() {
       }
     }
   }
+  filestream.close();
   return 0;
   }
 
@@ -201,6 +222,7 @@ int LinuxParser::RunningProcesses() {  string line;
       }
     }
   }
+  filestream.close();
   return 0;
   }
 
@@ -213,6 +235,7 @@ string LinuxParser::Command(int pid) {
     std::istringstream linestream(line);
     linestream >> commandLine;
   }
+  stream.close();
   return commandLine;
    }
 
@@ -226,13 +249,14 @@ string LinuxParser::Ram(int pid) {
       std::replace(line.begin(), line.end(), ':', ' ');
       std::istringstream linestream(line);
       while (linestream >> key >> value) {
-        if (key == "VmSize") {
-          int valueL = stoi(value)/1024;
+        if (key == "VmData") { // VmData is Physical RAM and Vmsize is Virtal memory size 
+          int valueL = stoi(value)*0.001;
           return to_string(valueL) ;
         }
       }
     }
   }
+  filestream.close();
   return string(); }
 
 string LinuxParser::Uid(int pid) { 
@@ -270,26 +294,36 @@ string LinuxParser::User(int pid) {
 
     }
   }
-
+ filestream.close();
   return userName; }
 
 long LinuxParser::UpTime(int pid) { 
   string line;
   string jiffy;
   long upTime{0};
-  vector<string> jiffies;
+  int counter = 0;
+  string startTime;
+  long sTime{0};
   std::ifstream stream(kProcDirectory+to_string(pid)+kStatFilename);
   if (stream.is_open()){
     std::getline(stream , line);
     std::istringstream linestream(line);
     while(linestream>>jiffy) {
-      jiffies.push_back(jiffy);
       
+      if (counter==21) startTime = jiffy;
+      counter+=1;
     }
     
   }
-
-    upTime= stol(jiffies[21])/sysconf(_SC_CLK_TCK);
+  stream.close();
+  // std::cout<< " the error is here : "<<startTime << "  "<<startTime.size()<<std::endl;
+  if (std::all_of(startTime.begin(), startTime.end(), isdigit)) {
+      if(startTime.size()!=0)
+          sTime = stol(startTime);
+  }
+    
+  upTime=  UpTime()-(sTime/sysconf(_SC_CLK_TCK));
+  
  
   return upTime;
   }

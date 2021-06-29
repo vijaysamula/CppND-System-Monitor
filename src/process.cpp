@@ -28,12 +28,12 @@ float Process::CpuUtilization() const {
 void Process::updateCpuUtilization()  { 
     
         long activeTime =  LinuxParser::ActiveJiffies(pid_);
-        long seconds = LinuxParser::UpTime() - uptime_;
+        long seconds = uptime_;
         cpuUtilitzation_= (float) activeTime / (float) seconds;
       }
 
 string Process::Command()  { 
-    return  command_;}
+    return  command_.substr(0,30);}
 
 string Process::Ram() { 
     
