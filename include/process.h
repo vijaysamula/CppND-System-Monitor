@@ -19,7 +19,6 @@ class Process {
   long int UpTime();                       
   bool operator<(Process const& a) const ;  
 
-  // TODO: Declare any necessary private members
  private:
     int pid_;
     std::string command_;

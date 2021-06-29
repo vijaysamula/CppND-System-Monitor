@@ -288,9 +288,8 @@ long LinuxParser::UpTime(int pid) {
     }
     
   }
-  try {
-    upTime= atol(jiffies[21].c_str())/sysconf(_SC_CLK_TCK);}
-  catch(...) {
-    upTime= 0;}
+
+    upTime= stol(jiffies[21])/sysconf(_SC_CLK_TCK);
+ 
   return upTime;
   }
