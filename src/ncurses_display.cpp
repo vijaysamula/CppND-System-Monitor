@@ -3,6 +3,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include<iostream>
 
 #include "format.h"
 #include "ncurses_display.h"
@@ -110,3 +111,6 @@ void NCursesDisplay::Display(System& system, int n) {
   }
   endwin();
 }
+
+
+
